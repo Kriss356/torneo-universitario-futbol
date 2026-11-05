@@ -15,6 +15,7 @@
             <Button fx:id="btnJugadores" mnemonicParsing="false" onAction="#irJugadores" styleClass="btn-menu" text="Jugadores" />
             <Button fx:id="btnPartidos" mnemonicParsing="false" onAction="#irPartidos" styleClass="btn-menu" text="Partidos" />
             <Button fx:id="btnAdministradores" mnemonicParsing="false" onAction="#irAdministradores" styleClass="btn-menu" text="Administradores" />
+            <Button fx:id="btnAdminBD" mnemonicParsing="false" onAction="#irAdministradoresBD" styleClass="btn-menu" text="Administradores (BD)" />
             <Button fx:id="btnPosiciones" mnemonicParsing="false" onAction="#irPosiciones" styleClass="btn-menu" text="Posiciones" />
             <Label fx:id="lblUsuario" styleClass="texto-usuario" />
             <Button mnemonicParsing="false" onAction="#cerrarSesion" styleClass="btn-peligro" text="Cerrar sesión" />

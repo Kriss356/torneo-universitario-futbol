@@ -13,7 +13,7 @@ public class MenuController {
 
     @FXML private BorderPane raiz;
     @FXML private Label lblUsuario;
-    @FXML private Node btnCategorias, btnEquipos, btnJugadores, btnPartidos, btnPosiciones, btnAdministradores;
+    @FXML private Node btnCategorias, btnEquipos, btnJugadores, btnPartidos, btnPosiciones, btnAdministradores, btnAdminBD;
 
     @FXML
     private void initialize() {
@@ -25,6 +25,7 @@ public class MenuController {
         visible(btnJugadores, Sesion.esEquipos());
         visible(btnPartidos, Sesion.esPartidos() || Sesion.esTorneo());
         visible(btnAdministradores, Sesion.esTorneo());
+        visible(btnAdminBD, Sesion.esTorneo());
         visible(btnPosiciones, true);
 
         if (Sesion.esEquipos()) mostrar("categoria");
@@ -38,6 +39,15 @@ public class MenuController {
     @FXML private void irPartidos() { mostrar("partido"); }
     @FXML private void irPosiciones() { mostrar("posicion"); }
     @FXML private void irAdministradores() { mostrar("administrador"); }
+
+    @FXML
+    private void irAdministradoresBD() {
+        try {
+            raiz.setCenter(App.cargarFXMLMysql("administrador"));
+        } catch (IOException ex) {
+            Alertas.error("No se pudo cargar la pantalla de administradores (BD): " + ex.getMessage());
+        }
+    }
 
     @FXML
     private void cerrarSesion() {

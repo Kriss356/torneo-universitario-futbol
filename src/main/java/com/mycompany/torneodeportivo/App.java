@@ -29,6 +29,12 @@ public class App extends Application {
         return loader.load();
     }
 
+    /** Carga una vista del módulo MySQL: cargarFXMLMysql("administrador") -> mysql/vista/administrador.fxml */
+    public static Parent cargarFXMLMysql(String fxml) throws IOException {
+        FXMLLoader loader = new FXMLLoader(App.class.getResource("mysql/vista/" + fxml + ".fxml"));
+        return loader.load();
+    }
+
     public static void main(String[] args) {
         launch();
     }

@@ -5,7 +5,7 @@ edad, equipos, jugadores, partidos, resultados y tabla de posiciones. Este repos
 modelo de dominio** diseñada con los principios de la Programación Orientada a Objetos (abstracción, encapsulamiento,
 herencia y polimorfismo), junto con las interfaces gráficas que la utilizan.
 
-> Los datos viven en memoria mientras la aplicación está abierta (no hay base de datos).
+> Las pantallas del torneo trabajan con datos en memoria. El **módulo de Administradores (BD)** guarda la información en una base de datos MariaDB/MySQL mediante el patrón DAO (ver la sección *CRUD de administradores con MySQL*).
 
 ## Tecnologías
 
@@ -83,6 +83,48 @@ Se cargan datos de demostración en memoria al iniciar para poder probar las tab
 - CRUD de categorías, equipos, jugadores y partidos, con tablas, formularios y mensajes de éxito o error.
 - Estados administrados con `ComboBox`; logo de equipo y foto de jugador con vista previa.
 - Registro de resultados y tabla de posiciones calculada automáticamente.
+
+## CRUD de administradores con MySQL (DAO)
+
+Pantalla **Administradores (BD)** del menú (visible para el rol Administrador del torneo). Realiza el CRUD completo sobre la
+tabla `administradores` de la base de datos `torneo_futbol`, con comunicación directa entre el controlador y el DAO.
+
+### Estructura
+
+```
+com.mycompany.torneodeportivo.mysql
+├── modelos         Administrador, ERoles, EEstados
+├── daos            Conexion (JDBC) y AdministradorDAO (guardar, actualizar, eliminar, listarTodos)
+└── controladores   AdministradorController
+src/main/resources/.../mysql/vista/administrador.fxml   Interfaz (formulario + tabla)
+bd/03_tabla_administradores.sql                         Script de la tabla y datos de prueba
+```
+
+### Tabla `administradores`
+
+| Columna | Tipo | Restricción |
+|---|---|---|
+| id | INT | PK, AUTO_INCREMENT |
+| nombre | VARCHAR(60) | NOT NULL |
+| telefono | VARCHAR(10) | NULL |
+| email | VARCHAR(60) | NOT NULL, UNIQUE |
+| direccion | VARCHAR(100) | NULL |
+| usuario | VARCHAR(20) | NOT NULL, UNIQUE |
+| clave_acceso | VARCHAR(255) | NOT NULL |
+| ruta_imagen | VARCHAR(255) | NULL |
+| rol | ENUM('ADMIN_EQUIPOS','ADMIN_PARTIDOS','ADMIN_TORNEO') | NOT NULL |
+| estado | ENUM('ACTIVO','INACTIVO','SUSPENDIDO') | NOT NULL |
+
+### Cómo ejecutarlo
+
+1. Iniciar **Apache** y **MySQL** en XAMPP.
+2. En phpMyAdmin, seleccionar la base `torneo_futbol`, abrir la pestaña **SQL** y ejecutar `bd/03_tabla_administradores.sql`.
+3. Si el usuario `root` de MariaDB tiene contraseña, escribirla en `daos/Conexion.java` (constante `CLAVE`).
+4. En NetBeans: **Clean and Build** y **Run**. Iniciar sesión como `admin.torneo` (contraseña `1234`) y abrir **Administradores (BD)**.
+
+Operaciones: **Guardar** (INSERT), clic en una fila para consultar, **Actualizar** (UPDATE), **Eliminar** (DELETE) y **Limpiar**.
+El módulo `module-info.java` requiere `java.sql` y el driver `org.mariadb.jdbc`, y abre los paquetes `mysql.controladores`
+y `mysql.modelos` para JavaFX.
 
 ## Autor
 
