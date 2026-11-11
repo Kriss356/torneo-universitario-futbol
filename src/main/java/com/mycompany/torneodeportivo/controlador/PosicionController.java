@@ -2,6 +2,8 @@ package com.mycompany.torneodeportivo.controlador;
 
 import com.mycompany.torneodeportivo.modelo.Categoria;
 import com.mycompany.torneodeportivo.modelo.Posicion;
+import com.mycompany.torneodeportivo.mysql.modelos.EPermisos;
+import com.mycompany.torneodeportivo.servicio.Autorizacion;
 import com.mycompany.torneodeportivo.servicio.DatosServicio;
 import com.mycompany.torneodeportivo.util.Alertas;
 import com.mycompany.torneodeportivo.util.Convertidores;
@@ -47,9 +49,10 @@ public class PosicionController {
         colDG.setCellValueFactory(new PropertyValueFactory<>("diferenciaGoles"));
         colPts.setCellValueFactory(new PropertyValueFactory<>("puntos"));
 
-        // El botón de recalcular es exclusivo del AdministradorTorneo
-        btnActualizar.setVisible(Sesion.esTorneo());
-        btnActualizar.setManaged(Sesion.esTorneo());
+        // Autorización: recalcular la tabla requiere el permiso POSICIONES_RECALCULAR
+        boolean puedeRecalcular = Sesion.puede(EPermisos.POSICIONES_RECALCULAR);
+        btnActualizar.setVisible(puedeRecalcular);
+        btnActualizar.setManaged(puedeRecalcular);
         actualizarResumen();
     }
 
@@ -58,10 +61,15 @@ public class PosicionController {
 
     @FXML
     private void actualizarTabla() {
-        servicio.recalcularPosiciones();
-        tabla.refresh();
-        actualizarResumen();
-        Alertas.info("Tabla de posiciones actualizada correctamente.");
+        try {
+            Autorizacion.exigir(EPermisos.POSICIONES_RECALCULAR);
+            servicio.recalcularPosiciones(); // recalcula y guarda en la tabla "posicion" de la BD
+            tabla.refresh();
+            actualizarResumen();
+            Alertas.info("Tabla de posiciones actualizada y guardada en la base de datos.");
+        } catch (IllegalArgumentException ex) {
+            Alertas.error(ex.getMessage());
+        }
     }
 
     private void actualizarResumen() {

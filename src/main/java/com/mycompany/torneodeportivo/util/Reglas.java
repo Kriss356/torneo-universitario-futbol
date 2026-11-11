@@ -18,8 +18,9 @@ public class Reglas {
     public static final String MSG_TEXTO = "Carácter no permitido: solo letras, números, espacios y . , - ' & ( ) # /";
     public static final String CAR_ENTERO = "[0-9]";
     public static final String MSG_ENTERO = "Solo se permiten dígitos (0-9).";
-    public static final String CAR_CORREO = "[A-Za-z0-9@._+\\-]";
-    public static final String MSG_CORREO = "Carácter no permitido en un correo electrónico.";
+    /** Correo: se permite cualquier carácter excepto espacios (el formato se revisa con la regla CORREO). */
+    public static final String CAR_CORREO = "\\S";
+    public static final String MSG_CORREO = "No se permiten espacios en el correo electrónico.";
     public static final String CAR_HORA = "[0-9:]";
     public static final String MSG_HORA = "Solo se permiten dígitos y dos puntos (HH:mm).";
     public static final String CAR_USUARIO = "[A-Za-z0-9._]";
@@ -30,7 +31,7 @@ public class Reglas {
     private static final String OBLIGATORIO = "Este campo es obligatorio.";
     private static final Pattern PERSONA = Pattern.compile("\\p{L}[\\p{L} .'\\-]*");
     private static final Pattern TEXTO = Pattern.compile("[\\p{L}\\p{N}][\\p{L}\\p{N} .,'&()#/\\-]*");
-    private static final Pattern CORREO = Pattern.compile("[A-Za-z0-9._+\\-]+@[A-Za-z0-9\\-]+(\\.[A-Za-z0-9\\-]+)+");
+    private static final Pattern CORREO = Pattern.compile("[^\\s@]+@[^\\s@]+\\.[^\\s@]+");
     private static final Pattern HORA = Pattern.compile("([01]\\d|2[0-3]):[0-5]\\d");
     private static final Pattern USUARIO = Pattern.compile("[A-Za-z0-9._]+");
 

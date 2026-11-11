@@ -33,6 +33,9 @@ public class JugadorController extends FormularioBase<Jugador> {
     @FXML private Label errNombre, errEdad, errNumero, errPosicion, errEquipo, errEstado;
     @FXML private ImageView imgFoto;
 
+    /** Foto elegida y aún no guardada; se copia a la carpeta "imagenes" al presionar Guardar. */
+    private File fotoElegida;
+
     @FXML
     private void initialize() {
         DatosServicio servicio = DatosServicio.getInstancia();
@@ -60,13 +63,20 @@ public class JugadorController extends FormularioBase<Jugador> {
         iniciarFormulario();
     }
 
-    /** Elegir foto: solo se muestra la vista previa; en esta actividad no se copia ni se guarda el archivo. */
+    /** Elegir foto: muestra la vista previa; el archivo se copia y su ruta se guarda en la BD al presionar Guardar. */
     @FXML
     private void seleccionarFoto() {
         File f = ImagenUtil.elegir(imgFoto.getScene().getWindow());
         if (f != null) {
+            fotoElegida = f;
             imgFoto.setImage(new Image(f.toURI().toString(), 140, 140, true, true));
         }
+    }
+
+    /** Prefijo de los permisos de este módulo (tabla permiso). */
+    @Override
+    protected String modulo() {
+        return "JUGADORES";
     }
 
     @Override
@@ -78,6 +88,7 @@ public class JugadorController extends FormularioBase<Jugador> {
         cmbEquipo.getSelectionModel().clearSelection();
         cmbEstado.getSelectionModel().clearSelection();
         imgFoto.setImage(null);
+        fotoElegida = null;
     }
 
     @Override
@@ -89,10 +100,31 @@ public class JugadorController extends FormularioBase<Jugador> {
         cmbEquipo.setValue(j.getEquipo());
         cmbEstado.setValue(j.getEstado());
         imgFoto.setImage(ImagenUtil.cargar(j.getRutaFoto()));
+        fotoElegida = null;
     }
 
     @Override
     protected String describir(Jugador j) {
         return j.getNombre() + " (#" + j.getNumeroCamiseta() + ", " + j.getNombreEquipo() + ")";
+    }
+
+    @Override
+    protected void guardarRegistro(Jugador editando) throws Exception {
+        DatosServicio servicio = DatosServicio.getInstancia();
+        String ruta = fotoElegida != null ? ImagenUtil.guardar(fotoElegida)
+                : (editando == null ? null : editando.getRutaFoto());
+        String nombre = txtNombre.getText().trim();
+        int edad = Integer.parseInt(txtEdad.getText().trim());
+        int numero = Integer.parseInt(txtNumero.getText().trim());
+        if (editando == null) {
+            servicio.agregarJugador(nombre, edad, numero, cmbPosicion.getValue(), cmbEquipo.getValue(), ruta, cmbEstado.getValue());
+        } else {
+            servicio.actualizarJugador(editando, nombre, edad, numero, cmbPosicion.getValue(), cmbEquipo.getValue(), ruta, cmbEstado.getValue());
+        }
+    }
+
+    @Override
+    protected void eliminarRegistro(Jugador j) {
+        DatosServicio.getInstancia().eliminarJugador(j);
     }
 }

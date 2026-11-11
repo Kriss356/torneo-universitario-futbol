@@ -30,6 +30,9 @@ public class EquipoController extends FormularioBase<Equipo> {
     @FXML private Label errNombre, errUniversidad, errEntrenador, errCategoria, errEstado;
     @FXML private ImageView imgLogo;
 
+    /** Imagen elegida y aún no guardada; se copia a la carpeta "imagenes" al presionar Guardar. */
+    private File logoElegido;
+
     @FXML
     private void initialize() {
         DatosServicio servicio = DatosServicio.getInstancia();
@@ -56,13 +59,20 @@ public class EquipoController extends FormularioBase<Equipo> {
         iniciarFormulario();
     }
 
-    /** Elegir logo: solo se muestra la vista previa; en esta actividad no se copia ni se guarda el archivo. */
+    /** Elegir logo: muestra la vista previa; el archivo se copia y su ruta se guarda en la BD al presionar Guardar. */
     @FXML
     private void seleccionarLogo() {
         File f = ImagenUtil.elegir(imgLogo.getScene().getWindow());
         if (f != null) {
+            logoElegido = f;
             imgLogo.setImage(new Image(f.toURI().toString(), 140, 140, true, true));
         }
+    }
+
+    /** Prefijo de los permisos de este módulo (tabla permiso). */
+    @Override
+    protected String modulo() {
+        return "EQUIPOS";
     }
 
     @Override
@@ -73,6 +83,7 @@ public class EquipoController extends FormularioBase<Equipo> {
         cmbCategoria.getSelectionModel().clearSelection();
         cmbEstado.getSelectionModel().clearSelection();
         imgLogo.setImage(null);
+        logoElegido = null;
     }
 
     @Override
@@ -83,10 +94,31 @@ public class EquipoController extends FormularioBase<Equipo> {
         cmbCategoria.setValue(e.getCategoria());
         cmbEstado.setValue(e.getEstado());
         imgLogo.setImage(ImagenUtil.cargar(e.getRutaLogo()));
+        logoElegido = null;
     }
 
     @Override
     protected String describir(Equipo e) {
         return e.getNombreEquipo() + " (" + e.getUniversidad() + ")";
+    }
+
+    @Override
+    protected void guardarRegistro(Equipo editando) throws Exception {
+        DatosServicio servicio = DatosServicio.getInstancia();
+        String ruta = logoElegido != null ? ImagenUtil.guardar(logoElegido)
+                : (editando == null ? null : editando.getRutaLogo());
+        String nombre = txtNombre.getText().trim();
+        String universidad = txtUniversidad.getText().trim();
+        String entrenador = txtEntrenador.getText().trim();
+        if (editando == null) {
+            servicio.agregarEquipo(nombre, universidad, entrenador, cmbCategoria.getValue(), ruta, cmbEstado.getValue());
+        } else {
+            servicio.actualizarEquipo(editando, nombre, universidad, entrenador, cmbCategoria.getValue(), ruta, cmbEstado.getValue());
+        }
+    }
+
+    @Override
+    protected void eliminarRegistro(Equipo e) {
+        DatosServicio.getInstancia().eliminarEquipo(e);
     }
 }

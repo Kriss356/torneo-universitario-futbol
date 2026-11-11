@@ -14,6 +14,12 @@ public class Partido {
     /** El identificador único (llave primaria). */
     private int id;
 
+    /** El torneo al que pertenece el partido. */
+    private Torneo torneo;
+
+    /** La jornada (fecha del calendario del torneo) en la que se juega. */
+    private int jornada = 1;
+
     /** El equipo local. */
     private Equipo equipoLocal;
 
@@ -86,6 +92,59 @@ public class Partido {
             throw new IllegalArgumentException("El identificador no puede ser negativo.");
         }
         this.id = valor;
+    }
+
+    /**
+     * Obtiene el torneo al que pertenece el partido.
+     *
+     * @return el torneo
+     */
+    public Torneo getTorneo() {
+        return torneo;
+    }
+
+    /**
+     * Establece el torneo al que pertenece el partido.
+     *
+     * @param valor el torneo
+     * @throws IllegalArgumentException si el valor es nulo
+     */
+    public final void setTorneo(Torneo valor) {
+        if (valor == null) {
+            throw new IllegalArgumentException("El campo \"Torneo\" es obligatorio.");
+        }
+        this.torneo = valor;
+    }
+
+    /**
+     * Obtiene la jornada en la que se juega el partido.
+     *
+     * @return la jornada
+     */
+    public int getJornada() {
+        return jornada;
+    }
+
+    /**
+     * Establece la jornada en la que se juega el partido.
+     *
+     * @param valor la jornada (de 1 a 38)
+     * @throws IllegalArgumentException si está fuera del rango 1 a 38
+     */
+    public final void setJornada(int valor) {
+        if (valor < 1 || valor > 38) {
+            throw new IllegalArgumentException("La jornada debe estar entre 1 y 38.");
+        }
+        this.jornada = valor;
+    }
+
+    /**
+     * Obtiene el nombre del torneo para mostrarlo en la tabla.
+     *
+     * @return nombre completo del torneo o "—" si no tiene
+     */
+    public String getNombreTorneo() {
+        return torneo == null ? "—" : torneo.getNombreCompleto();
     }
 
     /**
@@ -295,7 +354,8 @@ public class Partido {
      */
     @Override
     public String toString() {
-        return "Partido[id=" + id + ", equipoLocal=" + getNombreLocal() + ", equipoVisitante=" + getNombreVisitante()
+        return "Partido[id=" + id + ", torneo=" + getNombreTorneo() + ", jornada=" + jornada
+                + ", equipoLocal=" + getNombreLocal() + ", equipoVisitante=" + getNombreVisitante()
                 + ", fecha=" + fecha + ", hora=" + hora + ", lugar=" + lugar + ", estado=" + estado
                 + ", resultado=" + getMarcador() + "]";
     }

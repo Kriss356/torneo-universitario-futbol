@@ -23,3 +23,5 @@
 .campo-invalido { -fx-border-color: #c62828; -fx-border-radius: 3; }
 .campo-valido { -fx-border-color: #2e7d32; -fx-border-radius: 3; }
 .btn-validar { -fx-background-color: #1565c0; -fx-text-fill: white; }
+.texto-nota { -fx-text-fill: #607d8b; -fx-font-size: 11.5px; }
+.aviso-permiso { -fx-background-color: #fff3e0; -fx-text-fill: #e65100; -fx-font-weight: bold; -fx-padding: 8; -fx-background-radius: 4; -fx-border-color: #ffb74d; -fx-border-radius: 4; }

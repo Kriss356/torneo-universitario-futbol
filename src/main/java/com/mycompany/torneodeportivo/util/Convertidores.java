@@ -2,6 +2,7 @@ package com.mycompany.torneodeportivo.util;
 
 import com.mycompany.torneodeportivo.modelo.Categoria;
 import com.mycompany.torneodeportivo.modelo.Equipo;
+import com.mycompany.torneodeportivo.modelo.Torneo;
 import javafx.util.StringConverter;
 
 /**
@@ -17,6 +18,15 @@ public class Convertidores {
             public String toString(Equipo e) { return e == null ? "" : e.getNombreEquipo(); }
             @Override
             public Equipo fromString(String s) { return null; }
+        };
+    }
+
+    public static StringConverter<Torneo> torneos() {
+        return new StringConverter<>() {
+            @Override
+            public String toString(Torneo t) { return t == null ? "" : t.getNombreCompleto(); }
+            @Override
+            public Torneo fromString(String s) { return null; }
         };
     }
 

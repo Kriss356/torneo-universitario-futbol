@@ -1,14 +1,24 @@
 package com.mycompany.torneodeportivo.controlador;
 
 import com.mycompany.torneodeportivo.App;
+import com.mycompany.torneodeportivo.mysql.daos.PermisoDAO;
+import com.mycompany.torneodeportivo.mysql.modelos.EPermisos;
+import com.mycompany.torneodeportivo.servicio.Autorizacion;
 import com.mycompany.torneodeportivo.util.Alertas;
 import com.mycompany.torneodeportivo.util.Sesion;
 import java.io.IOException;
+import java.util.List;
 import javafx.fxml.FXML;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
 import javafx.scene.layout.BorderPane;
 
+/**
+ * Ventana principal. Cada opción del menú se muestra solo si el rol tiene el permiso de
+ * consulta (VER) del módulo; al abrir un módulo se vuelve a validar el permiso en la BD.
+ *
+ * @author Christian Hernandez Garcia
+ */
 public class MenuController {
 
     @FXML private BorderPane raiz;
@@ -19,43 +29,71 @@ public class MenuController {
     private void initialize() {
         lblUsuario.setText(Sesion.getActual().getNombre() + " · " + Sesion.nombreRol());
 
-        // Cada rol solo ve los módulos que le corresponden
-        visible(btnCategorias, Sesion.esEquipos());
-        visible(btnEquipos, Sesion.esEquipos());
-        visible(btnJugadores, Sesion.esEquipos());
-        visible(btnPartidos, Sesion.esPartidos() || Sesion.esTorneo());
-        visible(btnAdministradores, Sesion.esTorneo());
-        visible(btnAdminBD, Sesion.esTorneo());
-        visible(btnPosiciones, true);
+        // Autorización: cada rol solo ve los módulos que puede consultar
+        visible(btnCategorias, Sesion.puede(EPermisos.CATEGORIAS_VER));
+        visible(btnEquipos, Sesion.puede(EPermisos.EQUIPOS_VER));
+        visible(btnJugadores, Sesion.puede(EPermisos.JUGADORES_VER));
+        visible(btnPartidos, Sesion.puede(EPermisos.PARTIDOS_VER));
+        visible(btnPosiciones, Sesion.puede(EPermisos.POSICIONES_VER));
+        visible(btnAdministradores, Sesion.puede(EPermisos.ADMINISTRADORES_VER));
+        visible(btnAdminBD, Sesion.puede(EPermisos.ADMINISTRADORES_VER));
 
-        if (Sesion.esEquipos()) mostrar("categoria");
-        else if (Sesion.esPartidos()) mostrar("partido");
-        else mostrar("posicion");
+        // Pantalla inicial según el perfil
+        if (Sesion.esEquipos()) irCategorias();
+        else if (Sesion.esPartidos()) irPartidos();
+        else irPosiciones();
     }
 
-    @FXML private void irCategorias() { mostrar("categoria"); }
-    @FXML private void irEquipos() { mostrar("equipo"); }
-    @FXML private void irJugadores() { mostrar("jugador"); }
-    @FXML private void irPartidos() { mostrar("partido"); }
-    @FXML private void irPosiciones() { mostrar("posicion"); }
-    @FXML private void irAdministradores() { mostrar("administrador"); }
+    @FXML private void irCategorias() { mostrar("categoria", EPermisos.CATEGORIAS_VER); }
+    @FXML private void irEquipos() { mostrar("equipo", EPermisos.EQUIPOS_VER); }
+    @FXML private void irJugadores() { mostrar("jugador", EPermisos.JUGADORES_VER); }
+    @FXML private void irPartidos() { mostrar("partido", EPermisos.PARTIDOS_VER); }
+    @FXML private void irPosiciones() { mostrar("posicion", EPermisos.POSICIONES_VER); }
+    @FXML private void irAdministradores() { mostrar("administrador", EPermisos.ADMINISTRADORES_VER); }
 
     @FXML
     private void irAdministradoresBD() {
         try {
+            Autorizacion.exigir(EPermisos.ADMINISTRADORES_VER);
             raiz.setCenter(App.cargarFXMLMysql("administrador"));
+        } catch (IllegalArgumentException ex) {
+            Alertas.error(ex.getMessage());
         } catch (IOException ex) {
             Alertas.error("No se pudo cargar la pantalla de administradores (BD): " + ex.getMessage());
         }
     }
 
+    /** Muestra el perfil del usuario: rol, responsabilidades y permisos (leídos de la BD). */
+    @FXML
+    private void verPerfil() {
+        try {
+            PermisoDAO dao = new PermisoDAO();
+            int id = Sesion.getActual().getId();
+            List<String> permisos = dao.detallePermisos(id);
+            StringBuilder sb = new StringBuilder();
+            sb.append("ID: ").append(id).append("\n")
+              .append("Nombre: ").append(Sesion.getActual().getNombre()).append("\n")
+              .append("Correo: ").append(Sesion.getActual().getCorreo()).append("\n")
+              .append("Rol: ").append(Sesion.nombreRol()).append("\n\n")
+              .append("Responsabilidades:\n").append(dao.descripcionRol(id)).append("\n\n")
+              .append("Permisos (").append(permisos.size()).append("):\n");
+            for (String p : permisos) sb.append("  • ").append(p).append("\n");
+            Alertas.informacion("Mi perfil y permisos", sb.toString());
+        } catch (IllegalArgumentException ex) {
+            Alertas.error(ex.getMessage());
+        }
+    }
+
+    /** Cierra sesión: cierra la ventana principal y regresa al login. */
     @FXML
     private void cerrarSesion() {
-        Sesion.cerrar();
+        if (!Alertas.confirmar("¿Deseas cerrar la sesión de " + Sesion.getActual().getNombre() + "?")) {
+            return;
+        }
         try {
-            App.setRoot("login");
+            App.cerrarSesion();
         } catch (IOException ex) {
-            Alertas.error("No se pudo cerrar la sesión: " + ex.getMessage());
+            Alertas.error("No se pudo abrir el inicio de sesión: " + ex.getMessage());
         }
     }
 
@@ -64,9 +102,12 @@ public class MenuController {
         nodo.setManaged(valor);
     }
 
-    private void mostrar(String vista) {
+    private void mostrar(String vista, EPermisos permiso) {
         try {
+            Autorizacion.exigir(permiso);
             raiz.setCenter(App.cargarFXML(vista));
+        } catch (IllegalArgumentException ex) {
+            Alertas.error(ex.getMessage());
         } catch (IOException ex) {
             Alertas.error("No se pudo cargar la pantalla \"" + vista + "\": " + ex.getMessage());
         }

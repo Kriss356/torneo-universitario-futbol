@@ -55,6 +55,12 @@ public class CategoriaController extends FormularioBase<Categoria> {
         iniciarFormulario();
     }
 
+    /** Prefijo de los permisos de este módulo (tabla permiso). */
+    @Override
+    protected String modulo() {
+        return "CATEGORIAS";
+    }
+
     @Override
     protected void limpiarCampos() {
         txtNombre.clear();
@@ -74,5 +80,24 @@ public class CategoriaController extends FormularioBase<Categoria> {
     @Override
     protected String describir(Categoria c) {
         return c.getNombreCategoria() + " (" + c.getEdadMinima() + "-" + c.getEdadMaxima() + ")";
+    }
+
+    @Override
+    protected void guardarRegistro(Categoria editando) {
+        DatosServicio servicio = DatosServicio.getInstancia();
+        String nombre = txtNombre.getText().trim();
+        int min = Integer.parseInt(txtEdadMin.getText().trim());
+        int max = Integer.parseInt(txtEdadMax.getText().trim());
+        EstadoCategoria estado = cmbEstado.getValue();
+        if (editando == null) {
+            servicio.agregarCategoria(nombre, min, max, estado);
+        } else {
+            servicio.actualizarCategoria(editando, nombre, min, max, estado);
+        }
+    }
+
+    @Override
+    protected void eliminarRegistro(Categoria c) {
+        DatosServicio.getInstancia().eliminarCategoria(c);
     }
 }

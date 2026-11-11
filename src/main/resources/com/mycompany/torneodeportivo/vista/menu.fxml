@@ -4,7 +4,7 @@
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 
-<BorderPane fx:id="raiz" prefHeight="700.0" prefWidth="1100.0" stylesheets="@estilos.css" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.mycompany.torneodeportivo.controlador.MenuController">
+<BorderPane fx:id="raiz" prefHeight="720.0" prefWidth="1200.0" stylesheets="@estilos.css" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.mycompany.torneodeportivo.controlador.MenuController">
    <top>
       <HBox alignment="CENTER_LEFT" spacing="8.0" styleClass="barra-menu">
          <children>
@@ -18,7 +18,8 @@
             <Button fx:id="btnAdminBD" mnemonicParsing="false" onAction="#irAdministradoresBD" styleClass="btn-menu" text="Administradores (BD)" />
             <Button fx:id="btnPosiciones" mnemonicParsing="false" onAction="#irPosiciones" styleClass="btn-menu" text="Posiciones" />
             <Label fx:id="lblUsuario" styleClass="texto-usuario" />
-            <Button mnemonicParsing="false" onAction="#cerrarSesion" styleClass="btn-peligro" text="Cerrar sesión" />
+            <Button fx:id="btnPerfil" mnemonicParsing="false" onAction="#verPerfil" styleClass="btn-neutro" text="Mi perfil" />
+            <Button fx:id="btnCerrarSesion" mnemonicParsing="false" onAction="#cerrarSesion" styleClass="btn-peligro" text="Cerrar sesión" />
          </children>
          <padding>
             <Insets bottom="8.0" left="15.0" right="15.0" top="8.0" />

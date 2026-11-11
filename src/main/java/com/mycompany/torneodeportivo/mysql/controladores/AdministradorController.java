@@ -3,7 +3,10 @@ package com.mycompany.torneodeportivo.mysql.controladores;
 import com.mycompany.torneodeportivo.mysql.daos.AdministradorDAO;
 import com.mycompany.torneodeportivo.mysql.modelos.Administrador;
 import com.mycompany.torneodeportivo.mysql.modelos.EEstados;
+import com.mycompany.torneodeportivo.mysql.modelos.EPermisos;
 import com.mycompany.torneodeportivo.mysql.modelos.ERoles;
+import com.mycompany.torneodeportivo.servicio.Autorizacion;
+import com.mycompany.torneodeportivo.util.Sesion;
 
 import java.io.File;
 import java.net.URL;
@@ -106,7 +109,23 @@ public class AdministradorController implements Initializable {
             (observable, oldValue, newValue) -> mostrarDetalleAdministrador(newValue)
         );
 
+        // Autorización: los botones se habilitan según los permisos del rol
+        btnGuardar.setDisable(!Sesion.puede(EPermisos.ADMINISTRADORES_CREAR));
+        btnActualizar.setDisable(!Sesion.puede(EPermisos.ADMINISTRADORES_EDITAR));
+        btnEliminar.setDisable(!Sesion.puede(EPermisos.ADMINISTRADORES_ELIMINAR));
+
         actualizarTabla();
+    }
+
+    /** Valida el permiso en la BD antes de la acción; si no está autorizado muestra el motivo. */
+    private boolean autorizado(EPermisos permiso) {
+        try {
+            Autorizacion.exigir(permiso);
+            return true;
+        } catch (IllegalArgumentException ex) {
+            mostrarAlerta(Alert.AlertType.ERROR, "Acceso denegado", ex.getMessage());
+            return false;
+        }
     }
 
     @FXML
@@ -125,6 +144,7 @@ public class AdministradorController implements Initializable {
 
     @FXML
     private void btnGuardarOnAction(ActionEvent event) {
+        if (!autorizado(EPermisos.ADMINISTRADORES_CREAR)) return;
         String nombre = txtNombre.getText().trim();
         String telefono = txtTelefono.getText().trim();
         String email = txtEmail.getText().trim();
@@ -154,6 +174,7 @@ public class AdministradorController implements Initializable {
 
     @FXML
     private void btnActualizarOnAction(ActionEvent event) {
+        if (!autorizado(EPermisos.ADMINISTRADORES_EDITAR)) return;
         if (txtId.getText().trim().isEmpty()) {
             mostrarAlerta(Alert.AlertType.WARNING, "Selección Requerida", "Seleccione un administrador de la tabla para actualizar.");
             return;
@@ -193,6 +214,7 @@ public class AdministradorController implements Initializable {
 
     @FXML
     private void btnEliminarOnAction(ActionEvent event) {
+        if (!autorizado(EPermisos.ADMINISTRADORES_ELIMINAR)) return;
         if (txtId.getText().trim().isEmpty()) {
             mostrarAlerta(Alert.AlertType.WARNING, "Selección Requerida", "Seleccione un registro de la tabla para eliminar.");
             return;

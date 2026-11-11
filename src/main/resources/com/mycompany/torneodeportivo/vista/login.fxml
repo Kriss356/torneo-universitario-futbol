@@ -4,27 +4,28 @@
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 
-<StackPane prefHeight="700.0" prefWidth="1100.0" styleClass="fondo-login" stylesheets="@estilos.css" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.mycompany.torneodeportivo.controlador.LoginController">
+<StackPane prefHeight="560.0" prefWidth="480.0" styleClass="fondo-login" stylesheets="@estilos.css" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.mycompany.torneodeportivo.controlador.LoginController">
    <children>
-      <VBox alignment="CENTER_LEFT" maxHeight="-Infinity" maxWidth="-Infinity" prefWidth="360.0" spacing="8.0" styleClass="tarjeta-login">
+      <VBox alignment="CENTER_LEFT" maxHeight="-Infinity" maxWidth="-Infinity" prefWidth="370.0" spacing="8.0" styleClass="tarjeta-login">
          <children>
             <Label styleClass="titulo-login" text="⚽ Torneo Universitario" />
-            <Label text="Inicia sesión como administrador" />
-            <Label text="Usuario">
+            <Label text="Área administrativa · acceso privado" />
+            <Label text="ID o correo electrónico">
                <padding>
                   <Insets top="10.0" />
                </padding>
             </Label>
-            <TextField fx:id="txtUsuario" promptText="Ej. admin.equipos" />
+            <TextField fx:id="txtUsuario" onAction="#iniciarSesion" promptText="Ej. 1 o nombre@uni.mx" />
             <Label text="Contraseña" />
-            <PasswordField fx:id="txtContrasena" onAction="#iniciarSesion" />
-            <Button maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#iniciarSesion" styleClass="btn-principal" text="Iniciar sesión">
+            <PasswordField fx:id="txtContrasena" onAction="#iniciarSesion" promptText="Contraseña" />
+            <Label fx:id="lblMensaje" maxWidth="1.7976931348623157E308" styleClass="msg-error" wrapText="true" />
+            <Button fx:id="btnIniciar" defaultButton="true" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#iniciarSesion" styleClass="btn-principal" text="Iniciar sesión">
                <VBox.margin>
-                  <Insets top="12.0" />
+                  <Insets top="6.0" />
                </VBox.margin>
             </Button>
             <Button fx:id="btnSalir" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#salir" styleClass="btn-peligro" text="Salir de la aplicación" />
-            <Label text="Usuarios de prueba (contraseña 1234): admin.equipos, admin.partidos, admin.torneo" wrapText="true">
+            <Label styleClass="texto-nota" text="Solo las cuentas activas pueden entrar. Las cuentas nuevas las crea el Administrador del torneo." wrapText="true">
                <padding>
                   <Insets top="10.0" />
                </padding>

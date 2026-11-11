@@ -1,25 +1,42 @@
 package com.mycompany.torneodeportivo.servicio;
 
 import com.mycompany.torneodeportivo.modelo.*;
+import com.mycompany.torneodeportivo.mysql.daos.AdministradorSistemaDAO;
+import com.mycompany.torneodeportivo.mysql.daos.CategoriaDAO;
+import com.mycompany.torneodeportivo.mysql.daos.EquipoDAO;
+import com.mycompany.torneodeportivo.mysql.daos.JugadorDAO;
+import com.mycompany.torneodeportivo.mysql.daos.PartidoDAO;
+import com.mycompany.torneodeportivo.mysql.daos.PosicionDAO;
+import com.mycompany.torneodeportivo.mysql.daos.TorneoDAO;
+import com.mycompany.torneodeportivo.util.Cifrado;
+import com.mycompany.torneodeportivo.util.ImagenUtil;
 import java.time.LocalDate;
 import java.time.LocalTime;
-import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 
 /**
- * Capa de servicio: guarda todo en listas en memoria (sin base de datos)
- * y contiene las reglas de negocio. Los controladores solo llaman a estos métodos.
+ * Capa de servicio: contiene las reglas de negocio y guarda todo en la base de datos
+ * torneo_futbol (MariaDB) por medio de los DAOs. Las listas observables son una copia
+ * en memoria de lo que hay en la base, para mostrarla en las tablas de JavaFX.
+ *
+ * Patrón de cada operación: 1) validar reglas, 2) guardar en la BD con el DAO,
+ * 3) solo si la BD lo aceptó, actualizar la lista en memoria.
  * Todas las reglas lanzan IllegalArgumentException con un mensaje para el usuario.
+ *
+ * @author Christian Hernandez Garcia
  */
 public class DatosServicio {
 
     private static final DatosServicio INSTANCIA = new DatosServicio();
     public static DatosServicio getInstancia() { return INSTANCIA; }
 
+    private final ObservableList<Torneo> torneos = FXCollections.observableArrayList();
     private final ObservableList<Categoria> categorias = FXCollections.observableArrayList();
     private final ObservableList<Equipo> equipos = FXCollections.observableArrayList();
     private final ObservableList<Jugador> jugadores = FXCollections.observableArrayList();
@@ -27,20 +44,19 @@ public class DatosServicio {
     private final ObservableList<Posicion> posiciones = FXCollections.observableArrayList();
     private final ObservableList<Administrador> administradores = FXCollections.observableArrayList();
 
-    private int sigCategoria = 1, sigEquipo = 1, sigJugador = 1,
-                sigPartido = 1, sigResultado = 1, sigPosicion = 1;
+    private final TorneoDAO torneoDAO = new TorneoDAO();
+    private final CategoriaDAO categoriaDAO = new CategoriaDAO();
+    private final EquipoDAO equipoDAO = new EquipoDAO();
+    private final JugadorDAO jugadorDAO = new JugadorDAO();
+    private final PartidoDAO partidoDAO = new PartidoDAO();
+    private final PosicionDAO posicionDAO = new PosicionDAO();
+    private final AdministradorSistemaDAO administradorDAO = new AdministradorSistemaDAO();
 
     private DatosServicio() {
-        administradores.add(new AdministradorEquipos(1, "Ana Torres", 35, "ana@uni.mx",
-                "admin.equipos", "1234", "Equipos y jugadores"));
-        administradores.add(new AdministradorPartidos(2, "Luis Mora", 40, "luis@uni.mx",
-                "admin.partidos", "1234", "Matutino"));
-        administradores.add(new AdministradorTorneo(3, "Sofía Ruiz", 38, "sofia@uni.mx",
-                "admin.torneo", "1234", "Total"));
-        cargarDatosDemo();
     }
 
     // ---------- Acceso a las listas ----------
+    public ObservableList<Torneo> getTorneos() { return torneos; }
     public ObservableList<Categoria> getCategorias() { return categorias; }
     public ObservableList<Equipo> getEquipos() { return equipos; }
     public ObservableList<Jugador> getJugadores() { return jugadores; }
@@ -48,42 +64,148 @@ public class DatosServicio {
     public ObservableList<Posicion> getPosiciones() { return posiciones; }
     public ObservableList<Administrador> getAdministradores() { return administradores; }
 
+    /**
+     * Lee toda la información desde la base de datos. Se llama al iniciar sesión.
+     *
+     * @throws IllegalArgumentException si no hay conexión o falta alguna tabla
+     */
+    public void cargarDesdeBD() {
+        List<Administrador> admins = administradorDAO.listar();
+        List<Torneo> tors = torneoDAO.listar();
+        Map<Integer, Torneo> mapaTorneos = new HashMap<>();
+        for (Torneo t : tors) mapaTorneos.put(t.getId(), t);
+        List<Categoria> cats = categoriaDAO.listar();
+        Map<Integer, Categoria> mapaCategorias = new HashMap<>();
+        for (Categoria c : cats) mapaCategorias.put(c.getId(), c);
 
-    /** Datos de demostración en memoria para poder probar las pantallas (no hay persistencia). */
-    private void cargarDatosDemo() {
-        Categoria sub20 = agregarCategoria("Sub-20", 17, 20, EstadoCategoria.ABIERTA);
-        Categoria libre = agregarCategoria("Libre", 21, 30, EstadoCategoria.ABIERTA);
+        List<Equipo> eqs = equipoDAO.listar(mapaCategorias);
+        Map<Integer, Equipo> mapaEquipos = new HashMap<>();
+        for (Equipo e : eqs) mapaEquipos.put(e.getId(), e);
 
-        Equipo leones = agregarEquipo("Leones Negros", "Universidad de Guadalajara", "Carlos Méndez", sub20, null, EstadoEquipo.INSCRITO);
-        Equipo halcones = agregarEquipo("Halcones UTJ", "Universidad Tecnológica de Jalisco", "Laura Pérez", sub20, null, EstadoEquipo.INSCRITO);
-        Equipo titanes = agregarEquipo("Titanes", "Universidad Panamericana", "Jorge Ramírez", libre, null, EstadoEquipo.INSCRITO);
-        Equipo dragones = agregarEquipo("Dragones", "Universidad del Valle de Atemajac", "Marta Solís", libre, null, EstadoEquipo.INSCRITO);
+        List<Jugador> jugs = jugadorDAO.listar(mapaEquipos);
+        List<Partido> parts = partidoDAO.listar(mapaTorneos, mapaEquipos);
+        posicionDAO.crearFaltantes();
+        List<Posicion> pos = posicionDAO.listar(mapaEquipos);
 
-        agregarJugador("Diego Ramírez", 18, 9, PosicionCampo.DELANTERO, leones, null, EstadoJugador.HABILITADO);
-        agregarJugador("Mateo Hernández", 19, 1, PosicionCampo.PORTERO, leones, null, EstadoJugador.HABILITADO);
-        agregarJugador("Luis Ortega", 20, 10, PosicionCampo.MEDIOCAMPISTA, halcones, null, EstadoJugador.HABILITADO);
-        agregarJugador("Andrés Castro", 18, 4, PosicionCampo.DEFENSA, halcones, null, EstadoJugador.LESIONADO);
-        agregarJugador("Ricardo Flores", 24, 7, PosicionCampo.DELANTERO, titanes, null, EstadoJugador.HABILITADO);
-        agregarJugador("Pablo Núñez", 22, 3, PosicionCampo.DEFENSA, titanes, null, EstadoJugador.HABILITADO);
-        agregarJugador("Emilio Vargas", 27, 5, PosicionCampo.MEDIOCAMPISTA, dragones, null, EstadoJugador.SANCIONADO);
-
-        Partido jugado = agregarPartido(leones, halcones, LocalDate.now().minusDays(2), LocalTime.of(16, 0), "Cancha 1", EstadoPartido.FINALIZADO);
-        registrarResultado(jugado, 2, 1, EstadoResultado.CONFIRMADO);
-        agregarPartido(titanes, dragones, LocalDate.now().plusDays(3), LocalTime.of(18, 30), "Estadio Universitario", EstadoPartido.PROGRAMADO);
+        administradores.setAll(admins);
+        torneos.setAll(tors);
+        categorias.setAll(cats);
+        equipos.setAll(eqs);
+        jugadores.setAll(jugs);
+        partidos.setAll(parts);
+        posiciones.setAll(pos);
+        recalcularPosiciones(); // la tabla siempre coincide con los resultados guardados
     }
 
-    public Administrador autenticar(String usuario, String contrasena) {
-        for (Administrador a : administradores) {
-            if (a.iniciarSesion(usuario, contrasena)) return a;
+    // ---------- Administradores (tabla administrador) ----------
+    public Administrador agregarAdministrador(String nombre, int edad, String correo, String usuario,
+                                              String contrasena, String rol, EstadoAdministrador estado) {
+        validarAdministrador(null, correo, usuario);
+        Administrador a = crearAdministrador(0, nombre, edad, correo, usuario, Cifrado.sha256(contrasena), rol, null);
+        a.setEstado(estado);
+        a.setId(administradorDAO.insertar(a));
+        administradores.add(a);
+        return a;
+    }
+
+    /**
+     * Actualiza un administrador. Si contrasenaNueva viene vacía se conserva la actual.
+     * Como el rol define la subclase, se crea un objeto nuevo y se reemplaza en la lista.
+     */
+    public Administrador actualizarAdministrador(Administrador actual, String nombre, int edad, String correo,
+                                                 String usuario, String contrasenaNueva, String rol,
+                                                 EstadoAdministrador estado) {
+        validarAdministrador(actual, correo, usuario);
+        asegurarAdministradorTorneo(actual,
+                AdministradorSistemaDAO.ROL_TORNEO.equals(rol) && estado == EstadoAdministrador.ACTIVO);
+        String clave = (contrasenaNueva == null || contrasenaNueva.isEmpty())
+                ? actual.getContrasena() : Cifrado.sha256(contrasenaNueva);
+        Administrador copia = crearAdministrador(actual.getId(), nombre, edad, correo, usuario, clave, rol, actual);
+        copia.setEstado(estado);
+        administradorDAO.actualizar(copia);
+        administradores.set(administradores.indexOf(actual), copia);
+        return copia;
+    }
+
+    public void eliminarAdministrador(Administrador a) {
+        asegurarAdministradorTorneo(a, false);
+        administradorDAO.eliminar(a.getId());
+        administradores.remove(a);
+    }
+
+    /**
+     * Como no hay formulario de registro, siempre debe quedar al menos una cuenta ACTIVA de
+     * Administrador del torneo para poder iniciar sesión y crear cuentas.
+     *
+     * @param cuenta              cuenta que se va a modificar o eliminar
+     * @param seguiraSiendoActivo true si después del cambio seguirá siendo Administrador del torneo ACTIVO
+     */
+    private void asegurarAdministradorTorneo(Administrador cuenta, boolean seguiraSiendoActivo) {
+        if (seguiraSiendoActivo || !(cuenta instanceof AdministradorTorneo)
+                || cuenta.getEstado() != EstadoAdministrador.ACTIVO) {
+            return;
         }
-        return null;
+        boolean hayOtro = administradores.stream().anyMatch(a -> !a.equals(cuenta)
+                && a instanceof AdministradorTorneo && a.getEstado() == EstadoAdministrador.ACTIVO);
+        if (!hayOtro) {
+            throw new IllegalArgumentException("Debe existir al menos una cuenta ACTIVA de Administrador del torneo.\n"
+                    + "No se puede eliminar, desactivar ni cambiar de rol a la última.");
+        }
+    }
+
+    private void validarAdministrador(Administrador actual, String correo, String usuario) {
+        for (Administrador a : administradores) {
+            if (a == actual) continue;
+            if (a.getUsuario().equalsIgnoreCase(usuario)) {
+                throw new IllegalArgumentException("Ya existe un administrador con el usuario \"" + usuario + "\".");
+            }
+            if (a.getCorreo().equalsIgnoreCase(correo)) {
+                throw new IllegalArgumentException("Ya existe un administrador con el correo \"" + correo + "\".");
+            }
+        }
+    }
+
+    /** Crea la subclase según el rol; si no cambia el rol, conserva su dato propio. */
+    private Administrador crearAdministrador(int id, String nombre, int edad, String correo, String usuario,
+                                             String clave, String rol, Administrador anterior) {
+        if (AdministradorSistemaDAO.ROL_EQUIPOS.equals(rol)) {
+            String seccion = anterior instanceof AdministradorEquipos
+                    ? ((AdministradorEquipos) anterior).getSeccionAsignada() : "Equipos y jugadores";
+            return new AdministradorEquipos(id, nombre, edad, correo, usuario, clave, seccion);
+        } else if (AdministradorSistemaDAO.ROL_PARTIDOS.equals(rol)) {
+            String turno = anterior instanceof AdministradorPartidos
+                    ? ((AdministradorPartidos) anterior).getTurnoAsignado() : "Matutino";
+            return new AdministradorPartidos(id, nombre, edad, correo, usuario, clave, turno);
+        } else if (AdministradorSistemaDAO.ROL_TORNEO.equals(rol)) {
+            String nivel = anterior instanceof AdministradorTorneo
+                    ? ((AdministradorTorneo) anterior).getNivelPermiso() : "Total";
+            return new AdministradorTorneo(id, nombre, edad, correo, usuario, clave, nivel);
+        }
+        throw new IllegalArgumentException("Selecciona un rol válido.");
+    }
+
+    // ---------- Torneos ----------
+    public Torneo agregarTorneo(String nombre, TipoTorneo tipo, LocalDate inicio, LocalDate fin, EstadoTorneo estado) {
+        for (Torneo t : torneos) {
+            if (t.getNombreTorneo().equalsIgnoreCase(nombre) && t.getTipo() == tipo
+                    && t.getFechaInicio().getYear() == inicio.getYear()) {
+                throw new IllegalArgumentException("Ya existe el " + tipo.getTexto() + " " + inicio.getYear()
+                        + " de ese torneo.");
+            }
+        }
+        Torneo t = new Torneo(0, nombre, tipo, inicio, fin);
+        t.setEstado(estado);
+        t.setId(torneoDAO.insertar(t));
+        torneos.add(t);
+        return t;
     }
 
     // ---------- Categorías ----------
     public Categoria agregarCategoria(String nombre, int min, int max, EstadoCategoria estado) {
         validarCategoria(null, nombre, min, max);
-        Categoria c = new Categoria(sigCategoria++, nombre, min, max);
+        Categoria c = new Categoria(0, nombre, min, max);
         c.setEstado(estado);
+        c.setId(categoriaDAO.insertar(c));
         categorias.add(c);
         return c;
     }
@@ -96,6 +218,10 @@ public class DatosServicio {
                         + " (" + j.getEdad() + " años) quedaría fuera del nuevo rango.");
             }
         }
+        Categoria copia = new Categoria(c.getId(), nombre, min, max);
+        copia.setEstado(estado);
+        categoriaDAO.actualizar(copia);
+        // la base aceptó el cambio: se aplica en memoria
         c.setNombreCategoria(nombre);
         c.setEdadMinima(min);
         c.setEdadMaxima(max);
@@ -108,6 +234,7 @@ public class DatosServicio {
                 throw new IllegalArgumentException("No se puede eliminar: hay equipos en esta categoría.");
             }
         }
+        categoriaDAO.eliminar(c.getId());
         categorias.remove(c);
     }
 
@@ -124,12 +251,14 @@ public class DatosServicio {
     public Equipo agregarEquipo(String nombre, String universidad, String entrenador,
                                 Categoria categoria, String rutaLogo, EstadoEquipo estado) {
         validarEquipo(null, nombre);
-        Equipo e = new Equipo(sigEquipo++, nombre, universidad, categoria);
+        Equipo e = new Equipo(0, nombre, universidad, categoria);
         e.setEntrenador(entrenador);
         e.setRutaLogo(rutaLogo);
         e.setEstado(estado);
+        int[] ids = equipoDAO.insertar(e); // inserta el equipo y su fila de posiciones
+        e.setId(ids[0]);
         equipos.add(e);
-        posiciones.add(new Posicion(sigPosicion++, e));
+        posiciones.add(new Posicion(ids[1], e));
         return e;
     }
 
@@ -142,6 +271,14 @@ public class DatosServicio {
                         + " no cumple el rango de edad de la categoría elegida.");
             }
         }
+        if (categoria != e.getCategoria() && tienePartidos(e)) {
+            throw new IllegalArgumentException("No se puede cambiar la categoría: el equipo ya tiene partidos registrados.");
+        }
+        Equipo copia = new Equipo(e.getId(), nombre, universidad, categoria);
+        copia.setEntrenador(entrenador);
+        copia.setRutaLogo(rutaLogo);
+        copia.setEstado(estado);
+        equipoDAO.actualizar(copia);
         e.setNombreEquipo(nombre);
         e.setUniversidad(universidad);
         e.setEntrenador(entrenador);
@@ -154,13 +291,20 @@ public class DatosServicio {
         if (!jugadoresDe(e).isEmpty()) {
             throw new IllegalArgumentException("No se puede eliminar: el equipo tiene jugadores registrados.");
         }
-        for (Partido p : partidos) {
-            if (p.getEquipoLocal() == e || p.getEquipoVisitante() == e) {
-                throw new IllegalArgumentException("No se puede eliminar: el equipo tiene partidos programados.");
-            }
+        if (tienePartidos(e)) {
+            throw new IllegalArgumentException("No se puede eliminar: el equipo tiene partidos programados.");
         }
+        equipoDAO.eliminar(e.getId());
         equipos.remove(e);
         posiciones.removeIf(p -> p.getEquipo() == e);
+        ImagenUtil.borrar(e.getRutaLogo());
+    }
+
+    private boolean tienePartidos(Equipo e) {
+        for (Partido p : partidos) {
+            if (p.getEquipoLocal() == e || p.getEquipoVisitante() == e) return true;
+        }
+        return false;
     }
 
     private void validarEquipo(Equipo actual, String nombre) {
@@ -179,9 +323,10 @@ public class DatosServicio {
     public Jugador agregarJugador(String nombre, int edad, int numero, PosicionCampo posicion,
                                   Equipo equipo, String rutaFoto, EstadoJugador estado) {
         validarJugador(null, edad, numero, equipo);
-        Jugador j = new Jugador(sigJugador++, nombre, edad, numero, posicion, equipo);
+        Jugador j = new Jugador(0, nombre, edad, numero, posicion, equipo);
         j.setRutaFoto(rutaFoto);
         j.setEstado(estado);
+        j.setId(jugadorDAO.insertar(j));
         jugadores.add(j);
         return j;
     }
@@ -189,6 +334,10 @@ public class DatosServicio {
     public void actualizarJugador(Jugador j, String nombre, int edad, int numero, PosicionCampo posicion,
                                   Equipo equipo, String rutaFoto, EstadoJugador estado) {
         validarJugador(j, edad, numero, equipo);
+        Jugador copia = new Jugador(j.getId(), nombre, edad, numero, posicion, equipo);
+        copia.setRutaFoto(rutaFoto);
+        copia.setEstado(estado);
+        jugadorDAO.actualizar(copia);
         j.setNombre(nombre);
         j.setEdad(edad);
         j.setNumeroCamiseta(numero);
@@ -198,7 +347,11 @@ public class DatosServicio {
         j.setEstado(estado);
     }
 
-    public void eliminarJugador(Jugador j) { jugadores.remove(j); }
+    public void eliminarJugador(Jugador j) {
+        jugadorDAO.eliminar(j.getId());
+        jugadores.remove(j);
+        ImagenUtil.borrar(j.getRutaFoto());
+    }
 
     private void validarJugador(Jugador actual, int edad, int numero, Equipo equipo) {
         Categoria c = equipo.getCategoria();
@@ -214,19 +367,28 @@ public class DatosServicio {
     }
 
     // ---------- Partidos y resultados ----------
-    public Partido agregarPartido(Equipo local, Equipo visitante, LocalDate fecha,
+    public Partido agregarPartido(Torneo torneo, int jornada, Equipo local, Equipo visitante, LocalDate fecha,
                                   LocalTime hora, String lugar, EstadoPartido estado) {
         validarPartido(local, visitante);
-        Partido p = new Partido(sigPartido++, local, visitante, fecha, hora);
+        validarJornada(null, torneo, jornada, fecha, local, visitante);
+        if (estado == EstadoPartido.FINALIZADO) {
+            throw new IllegalArgumentException("Un partido nuevo no puede estar Finalizado: "
+                    + "guárdalo y después registra su resultado.");
+        }
+        Partido p = new Partido(0, local, visitante, fecha, hora);
+        p.setTorneo(torneo);
+        p.setJornada(jornada);
         p.setLugar(lugar);
         p.setEstado(estado);
+        p.setId(partidoDAO.insertar(p));
         partidos.add(p);
         return p;
     }
 
-    public void actualizarPartido(Partido p, Equipo local, Equipo visitante, LocalDate fecha,
-                                  LocalTime hora, String lugar, EstadoPartido estado) {
+    public void actualizarPartido(Partido p, Torneo torneo, int jornada, Equipo local, Equipo visitante,
+                                  LocalDate fecha, LocalTime hora, String lugar, EstadoPartido estado) {
         validarPartido(local, visitante);
+        validarJornada(p, torneo, jornada, fecha, local, visitante);
         if (p.getResultado() != null) {
             if (local != p.getEquipoLocal() || visitante != p.getEquipoVisitante()) {
                 throw new IllegalArgumentException("No se pueden cambiar los equipos de un partido con resultado.");
@@ -234,7 +396,17 @@ public class DatosServicio {
             if (estado != EstadoPartido.FINALIZADO) {
                 throw new IllegalArgumentException("Un partido con resultado debe permanecer Finalizado.");
             }
+        } else if (estado == EstadoPartido.FINALIZADO) {
+            throw new IllegalArgumentException("Para finalizar el partido usa \"Registrar resultado\".");
         }
+        Partido copia = new Partido(p.getId(), local, visitante, fecha, hora);
+        copia.setTorneo(torneo);
+        copia.setJornada(jornada);
+        copia.setLugar(lugar);
+        copia.setEstado(estado);
+        partidoDAO.actualizar(copia);
+        p.setTorneo(torneo);
+        p.setJornada(jornada);
         p.setEquipoLocal(local);
         p.setEquipoVisitante(visitante);
         p.setFecha(fecha);
@@ -244,19 +416,23 @@ public class DatosServicio {
     }
 
     public void eliminarPartido(Partido p) {
+        partidoDAO.eliminar(p.getId()); // su resultado se borra en cascada
         partidos.remove(p);
         recalcularPosiciones();
     }
 
-    /** Guarda el marcador, marca el partido como Finalizado y actualiza la tabla. */
+    /** Guarda el marcador, marca el partido como Finalizado y actualiza la tabla de posiciones. */
     public void registrarResultado(Partido p, int golesLocal, int golesVisitante, EstadoResultado estado) {
         if (golesLocal < 0 || golesVisitante < 0) {
             throw new IllegalArgumentException("Los goles no pueden ser negativos.");
         }
-        int id = p.getResultado() == null ? sigResultado++ : p.getResultado().getId();
-        Resultado r = new Resultado(id, golesLocal, golesVisitante);
+        if (p.getEstado() == EstadoPartido.SUSPENDIDO) {
+            throw new IllegalArgumentException("No se puede registrar el resultado de un partido Suspendido.");
+        }
+        Resultado r = new Resultado(0, golesLocal, golesVisitante);
         r.determinarGanador(p.getEquipoLocal(), p.getEquipoVisitante());
         r.setEstado(estado);
+        r.setId(partidoDAO.guardarResultado(p.getId(), r));
         p.setResultado(r);
         p.setEstado(EstadoPartido.FINALIZADO);
         recalcularPosiciones();
@@ -274,7 +450,40 @@ public class DatosServicio {
         }
     }
 
+    /**
+     * Busca un partido del mismo torneo y jornada en el que ya juegue alguno de los dos equipos.
+     *
+     * @param actual partido que se está editando (se ignora) o {@code null} si es nuevo
+     * @return el partido en conflicto o {@code null} si no hay
+     */
+    public Partido buscarChoqueJornada(Partido actual, Torneo torneo, int jornada, Equipo local, Equipo visitante) {
+        if (torneo == null) return null;
+        for (Partido p : partidos) {
+            if (p == actual || !torneo.equals(p.getTorneo()) || p.getJornada() != jornada) continue;
+            for (Equipo e : new Equipo[]{local, visitante}) {
+                if (e != null && (p.getEquipoLocal() == e || p.getEquipoVisitante() == e)) return p;
+            }
+        }
+        return null;
+    }
+
+    private void validarJornada(Partido actual, Torneo torneo, int jornada, LocalDate fecha,
+                                Equipo local, Equipo visitante) {
+        if (torneo == null) throw new IllegalArgumentException("Selecciona el torneo del partido.");
+        if (!torneo.incluyeFecha(fecha)) {
+            throw new IllegalArgumentException("La fecha debe estar dentro del " + torneo.getTipo().getTexto()
+                    + " (" + torneo.getPeriodo() + ").");
+        }
+        if (jornada < 1 || jornada > 38) throw new IllegalArgumentException("La jornada debe estar entre 1 y 38.");
+        Partido choque = buscarChoqueJornada(actual, torneo, jornada, local, visitante);
+        if (choque != null) {
+            throw new IllegalArgumentException("En la jornada " + jornada + " ya está el partido "
+                    + choque.getNombreLocal() + " vs " + choque.getNombreVisitante() + ".");
+        }
+    }
+
     // ---------- Tabla de posiciones ----------
+    /** Recalcula la tabla a partir de los resultados y la guarda en la tabla "posicion" de la BD. */
     public void recalcularPosiciones() {
         for (Posicion pos : posiciones) pos.reiniciar();
         for (Partido p : partidos) {
@@ -289,6 +498,7 @@ public class DatosServicio {
                 .thenComparing(Comparator.comparingInt(Posicion::getDiferenciaGoles).reversed())
                 .thenComparing(Comparator.comparingInt(Posicion::getGolesAFavor).reversed());
         FXCollections.sort(posiciones, orden);
+        posicionDAO.guardarTodas(posiciones);
     }
 
     private Posicion buscarPosicion(Equipo e) {
