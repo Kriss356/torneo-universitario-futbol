@@ -19,6 +19,7 @@
                   <ComboBox fx:id="cmbCategoria" prefWidth="220.0" promptText="Todas" />
                   <Button mnemonicParsing="false" onAction="#mostrarTodas" styleClass="btn-neutro" text="Mostrar todas" />
                   <Region HBox.hgrow="ALWAYS" />
+                  <Button fx:id="btnExportar" mnemonicParsing="false" onAction="#exportarCSV" styleClass="btn-validar" text="Exportar CSV" />
                   <Button fx:id="btnActualizar" mnemonicParsing="false" onAction="#actualizarTabla" styleClass="btn-principal" text="Actualizar tabla" />
                </children>
             </HBox>
