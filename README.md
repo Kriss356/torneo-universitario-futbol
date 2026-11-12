@@ -229,6 +229,24 @@ controlador/FormularioBase         botones según CREAR/EDITAR/ELIMINAR y modo c
 El **ID** de cada cuenta se ve en la última consulta que muestra el script 07 o en la tabla del módulo Administradores;
 también se puede iniciar sesión con ese número.
 
+## Control de versiones (Git y GitHub)
+
+El proyecto de NetBeans está conectado a este repositorio con Git (remoto `origin`, rama principal `main`).
+
+### Flujo de trabajo
+1. **commit** en `main` para cada cambio pequeño y completo (un mensaje claro por cambio).
+2. **branch**: cada funcionalidad nueva se programa en una rama aparte (`feature/<nombre>`), para no romper `main`.
+3. **commit** en la rama mientras se avanza.
+4. **merge** de la rama a `main` (con `--no-ff`, para que quede el commit de unión en el historial) cuando la funcionalidad compila y funciona.
+5. **push** de `main` y de la rama a GitHub.
+
+### Ejemplo: rama `feature/exportar-posiciones-csv`
+- Nueva clase `util/ExportadorCSV`: exporta la tabla de posiciones a CSV (UTF-8 con BOM para Excel).
+- Botón **Exportar CSV** en *Tabla de posiciones*: guarda lo que se ve en la tabla (respeta el filtro de categoría) y requiere el permiso `POSICIONES_VER`.
+
+### Qué no se sube (`.gitignore`)
+`target/`, `nbactions.xml`, `nbproject/private/`, los respaldos `_respaldo_antes_*/` y la carpeta `imagenes/` (fotos y logos que la app copia en tiempo de ejecución).
+
 ## Autor
 
 Christian Hernandez Garcia – Programación Orientada a Objetos – Universidad Tecnológica de Jalisco

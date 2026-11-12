@@ -16,7 +16,7 @@ com.mycompany.torneodeportivo
 ├── servicio                 DatosServicio (listas en memoria sincronizadas con la BD, reglas de negocio)
 │                            Autorizacion.exigir(permiso): valida sesión + permiso en la BD antes de cada acción
 ├── controlador              Login, Menu, Categoria, Equipo, Jugador, Partido, Posicion, Administrador, FormularioBase
-├── util                     Alertas, Validador, ImagenUtil, Sesion (admin + idSesion + permisos), Cifrado (SHA-256), Convertidores, Reglas, Filtros, CampoValidado, GestorFormulario
+├── util                     Alertas, Validador, ImagenUtil, Sesion (admin + idSesion + permisos), Cifrado (SHA-256), Convertidores, Reglas, Filtros, CampoValidado, GestorFormulario, ExportadorCSV
 └── mysql
     ├── modelos              Administrador, ERoles, EEstados, EPermisos (23 permisos)
     ├── daos                 Conexion (jdbc:mariadb://localhost:3306/torneo_futbol, root, sin clave), ErroresBD, Ids,
@@ -53,6 +53,12 @@ bd/                          03 … 06_preparar_base.sql, 07_login_roles_permiso
 5. Botón "Salir de la aplicación" en el login.
 6. CRUD de administradores con DAO y MariaDB; después toda la app pasó a guardar en la BD (torneo y jornada en partidos).
 7. Login contra la BD, 3 perfiles con permisos, autorización en la interfaz, cerrar sesión y DAOs de sesión/permisos. *(Pendiente: probar en XAMPP, video y entrega.)*
+8. Control de versiones con Git/GitHub: la carpeta de NetBeans ya es un repo Git (remoto `origin`, rama `main`, usuario "Christian Hernandez Garcia"). Commits con mensajes claros, rama `feature/exportar-posiciones-csv` (botón **Exportar CSV** en Posiciones + `util/ExportadorCSV`) unida a `main` con merge `--no-ff`. Pendiente: push desde NetBeans, capturas y PDF.
+
+## Git
+- Trabajar las funcionalidades nuevas en ramas `feature/<nombre>` y unirlas a `main` con merge.
+- Subir con NetBeans: Team → Remote → Push (usuario de GitHub + token personal como contraseña).
+- `.gitignore` excluye `target/`, `nbactions.xml`, `_respaldo_antes_*/` e `imagenes/`.
 
 ## Cómo corre
 XAMPP (Apache + MySQL) → phpMyAdmin, base `torneo_futbol`, pestaña SQL: `bd/06_preparar_base.sql` y luego `bd/07_login_roles_permisos.sql`
