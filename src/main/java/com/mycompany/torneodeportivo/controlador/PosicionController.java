@@ -7,12 +7,17 @@ import com.mycompany.torneodeportivo.servicio.Autorizacion;
 import com.mycompany.torneodeportivo.servicio.DatosServicio;
 import com.mycompany.torneodeportivo.util.Alertas;
 import com.mycompany.torneodeportivo.util.Convertidores;
+import com.mycompany.torneodeportivo.util.ExportadorCSV;
 import com.mycompany.torneodeportivo.util.Sesion;
 import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.collections.transformation.FilteredList;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.stage.FileChooser;
+import java.io.File;
+import java.io.IOException;
+import java.time.LocalDate;
 
 /** Tabla de posiciones: solo lectura, se calcula sola a partir de los resultados. */
 public class PosicionController {
@@ -21,7 +26,7 @@ public class PosicionController {
     @FXML private TableColumn<Posicion, Integer> colPos, colPJ, colG, colE, colP, colGF, colGC, colDG, colPts;
     @FXML private TableColumn<Posicion, String> colEquipo;
     @FXML private ComboBox<Categoria> cmbCategoria;
-    @FXML private Button btnActualizar;
+    @FXML private Button btnActualizar, btnExportar;
     @FXML private Label lblResumen;
 
     private final DatosServicio servicio = DatosServicio.getInstancia();
@@ -69,6 +74,38 @@ public class PosicionController {
             Alertas.info("Tabla de posiciones actualizada y guardada en la base de datos.");
         } catch (IllegalArgumentException ex) {
             Alertas.error(ex.getMessage());
+        }
+    }
+
+    /** Exporta a CSV lo que se ve en la tabla (respeta el filtro de categoría). */
+    @FXML
+    private void exportarCSV() {
+        try {
+            Autorizacion.exigir(EPermisos.POSICIONES_VER);
+            if (tabla.getItems().isEmpty()) {
+                Alertas.error("No hay posiciones para exportar. Registra resultados o cambia el filtro de categoría.");
+                return;
+            }
+            FileChooser selector = new FileChooser();
+            selector.setTitle("Guardar tabla de posiciones");
+            selector.getExtensionFilters().add(new FileChooser.ExtensionFilter("Archivo CSV (*.csv)", "*.csv"));
+            Categoria categoria = cmbCategoria.getValue();
+            String sufijo = categoria == null ? "todas" : categoria.getNombreCategoria().replaceAll("[^\\p{L}0-9]+", "_");
+            selector.setInitialFileName("posiciones_" + sufijo + "_" + LocalDate.now() + ".csv");
+            File archivo = selector.showSaveDialog(tabla.getScene().getWindow());
+            if (archivo == null) {
+                return; // el usuario canceló
+            }
+            if (!archivo.getName().toLowerCase().endsWith(".csv")) {
+                archivo = new File(archivo.getParentFile(), archivo.getName() + ".csv");
+            }
+            ExportadorCSV.exportarPosiciones(tabla.getItems(), archivo);
+            Alertas.informacion("Exportación completa", "Se exportaron " + tabla.getItems().size()
+                    + " equipos a:\n" + archivo.getAbsolutePath());
+        } catch (IllegalArgumentException ex) {
+            Alertas.error(ex.getMessage());
+        } catch (IOException ex) {
+            Alertas.error("No se pudo guardar el archivo: " + ex.getMessage());
         }
     }
 
