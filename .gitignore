@@ -1,0 +1,18 @@
+# Compilados de Maven
+target/
+*.class
+
+# Configuracion local de NetBeans
+nbproject/private/
+nbactions.xml
+
+# Respaldos manuales antes de cambios grandes (no se suben)
+_respaldo_antes_*/
+
+# Imagenes que la app copia al registrar logos y fotos (datos locales)
+imagenes/
+
+# Logs y archivos del sistema
+*.log
+Thumbs.db
+desktop.ini
