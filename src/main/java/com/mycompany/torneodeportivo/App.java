@@ -2,6 +2,7 @@ package com.mycompany.torneodeportivo;
 
 import com.mycompany.torneodeportivo.mysql.daos.SesionDAO;
 import com.mycompany.torneodeportivo.util.Alertas;
+import com.mycompany.torneodeportivo.util.Almacenamiento;
 import com.mycompany.torneodeportivo.util.Sesion;
 import java.io.IOException;
 import javafx.application.Application;
@@ -28,6 +29,8 @@ public class App extends Application {
 
     @Override
     public void start(Stage stage) throws IOException {
+        // Crea Documentos/TorneoUniversitarioFutbol/imagenes y registra la operación en el log
+        Almacenamiento.inicializar();
         ventanaLogin = stage;
         mostrarLogin();
     }

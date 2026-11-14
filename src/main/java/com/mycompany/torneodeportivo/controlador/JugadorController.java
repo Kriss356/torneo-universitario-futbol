@@ -33,7 +33,7 @@ public class JugadorController extends FormularioBase<Jugador> {
     @FXML private Label errNombre, errEdad, errNumero, errPosicion, errEquipo, errEstado;
     @FXML private ImageView imgFoto;
 
-    /** Foto elegida y aún no guardada; se copia a la carpeta "imagenes" al presionar Guardar. */
+    /** Foto elegida y aún no guardada; se copia a Documentos/TorneoUniversitarioFutbol/imagenes al presionar Guardar. */
     private File fotoElegida;
 
     @FXML

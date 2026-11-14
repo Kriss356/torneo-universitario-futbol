@@ -4,19 +4,20 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.UUID;
 import javafx.scene.image.Image;
 import javafx.stage.FileChooser;
 import javafx.stage.Window;
 
 /**
- * Estrategia de almacenamiento: la imagen elegida se COPIA a la carpeta "imagenes/"
- * del proyecto con un nombre único (UUID) y en el modelo solo se guarda la ruta relativa.
- * Así el registro no depende de la ubicación original ni de nombres repetidos.
+ * Estrategia de almacenamiento: la imagen elegida se COPIA a
+ * Documentos/TorneoUniversitarioFutbol/imagenes con un nombre único (UUID)
+ * y en la BD solo se guarda el nombre del archivo (ver {@link Almacenamiento}).
+ * Así el registro no depende de la ubicación original, del proyecto ni del lugar donde esté el JAR.
+ *
+ * @author Christian Hernandez Garcia
  */
 public class ImagenUtil {
-    private static final Path CARPETA = Paths.get("imagenes");
 
     public static File elegir(Window ventana) {
         FileChooser fc = new FileChooser();
@@ -26,23 +27,39 @@ public class ImagenUtil {
         return fc.showOpenDialog(ventana);
     }
 
+    /** Registro / actualización: copia la imagen a Documentos y regresa el nombre que se guarda en la BD. */
     public static String guardar(File origen) throws IOException {
-        Files.createDirectories(CARPETA);
+        Path carpeta = Almacenamiento.getCarpetaImagenes();
         String nombre = origen.getName();
-        String ext = nombre.contains(".") ? nombre.substring(nombre.lastIndexOf('.')) : "";
+        String ext = nombre.contains(".") ? nombre.substring(nombre.lastIndexOf('.')).toLowerCase() : "";
         String nuevo = UUID.randomUUID() + ext;
-        Files.copy(origen.toPath(), CARPETA.resolve(nuevo));
-        return "imagenes/" + nuevo;
+        Path destino = carpeta.resolve(nuevo);
+        try {
+            Files.copy(origen.toPath(), destino);
+            Almacenamiento.registrar("GUARDAR_IMAGEN", destino.toString(), "OK (origen: " + origen.getName() + ")");
+        } catch (IOException ex) {
+            Almacenamiento.registrar("GUARDAR_IMAGEN", destino.toString(), "ERROR: " + ex.getMessage());
+            throw ex;
+        }
+        return nuevo;
     }
 
+    /** Consulta: carga la imagen desde Documentos (acepta también rutas viejas "imagenes/..."). */
     public static Image cargar(String ruta) {
-        if (ruta == null || ruta.isEmpty()) return null;
-        File f = new File(ruta);
-        return f.exists() ? new Image(f.toURI().toString(), 140, 140, true, true) : null;
+        Path p = Almacenamiento.resolverImagen(ruta);
+        if (p == null || !Files.exists(p)) return null;
+        return new Image(p.toUri().toString(), 140, 140, true, true);
     }
 
+    /** Eliminación: borra el archivo de la carpeta de imágenes en Documentos. */
     public static void borrar(String ruta) {
-        if (ruta == null || ruta.isEmpty()) return;
-        try { Files.deleteIfExists(Paths.get(ruta)); } catch (IOException ignorada) { }
+        Path p = Almacenamiento.resolverImagen(ruta);
+        if (p == null) return;
+        try {
+            boolean borrado = Files.deleteIfExists(p);
+            Almacenamiento.registrar("ELIMINAR_IMAGEN", p.toString(), borrado ? "OK" : "NO EXISTIA");
+        } catch (IOException ex) {
+            Almacenamiento.registrar("ELIMINAR_IMAGEN", p.toString(), "ERROR: " + ex.getMessage());
+        }
     }
 }

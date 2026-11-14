@@ -274,6 +274,7 @@ public class DatosServicio {
         if (categoria != e.getCategoria() && tienePartidos(e)) {
             throw new IllegalArgumentException("No se puede cambiar la categoría: el equipo ya tiene partidos registrados.");
         }
+        String logoAnterior = e.getRutaLogo();
         Equipo copia = new Equipo(e.getId(), nombre, universidad, categoria);
         copia.setEntrenador(entrenador);
         copia.setRutaLogo(rutaLogo);
@@ -285,6 +286,8 @@ public class DatosServicio {
         e.setCategoria(categoria);
         e.setRutaLogo(rutaLogo);
         e.setEstado(estado);
+        // Si se cambió el logo, se borra el archivo anterior de Documentos
+        if (logoAnterior != null && !logoAnterior.equals(rutaLogo)) ImagenUtil.borrar(logoAnterior);
     }
 
     public void eliminarEquipo(Equipo e) {
@@ -334,6 +337,7 @@ public class DatosServicio {
     public void actualizarJugador(Jugador j, String nombre, int edad, int numero, PosicionCampo posicion,
                                   Equipo equipo, String rutaFoto, EstadoJugador estado) {
         validarJugador(j, edad, numero, equipo);
+        String fotoAnterior = j.getRutaFoto();
         Jugador copia = new Jugador(j.getId(), nombre, edad, numero, posicion, equipo);
         copia.setRutaFoto(rutaFoto);
         copia.setEstado(estado);
@@ -345,6 +349,8 @@ public class DatosServicio {
         j.setEquipo(equipo);
         j.setRutaFoto(rutaFoto);
         j.setEstado(estado);
+        // Si se cambió la foto, se borra el archivo anterior de Documentos
+        if (fotoAnterior != null && !fotoAnterior.equals(rutaFoto)) ImagenUtil.borrar(fotoAnterior);
     }
 
     public void eliminarJugador(Jugador j) {

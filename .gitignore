@@ -16,3 +16,6 @@ imagenes/
 *.log
 Thumbs.db
 desktop.ini
+
+# JAR generado (se entrega aparte, pesa mucho)
+distribucion/*.jar
